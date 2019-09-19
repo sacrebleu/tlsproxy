@@ -1,0 +1,72 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  labels:
+    app: tlsproxy-istio-dev
+  name: tlsproxy
+  namespace: nexmo-k8s
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: tlsproxy-istio-dev
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        app: tlsproxy-istio-dev
+    spec:
+      containers:
+      - env:
+        - name: UPSTREAM
+          valueFrom:
+            configMapKeyRef:
+              key: upstream
+              name: istio-upstream-conf
+        - name: SERVERNAME
+          valueFrom:
+            configMapKeyRef:
+              key: servername
+              name: istio-upstream-conf
+        - name: CERT_CHAIN
+          valueFrom:
+            configMapKeyRef:
+              key: cert_chain
+              name: istio-upstream-conf
+        - name: CERT
+          valueFrom:
+            configMapKeyRef:
+              key: client_cert
+              name: istio-upstream-conf
+        - name: KEY
+          valueFrom:
+            configMapKeyRef:
+              key: client_key
+              name: istio-upstream-conf
+        - name: PASSPHRASE
+          valueFrom:
+            secretKeyRef:
+              key: passphrase
+              name: istio-certs
+        image: <redacted>/nexmo-istio-tlsproxy:0.0.18
+        imagePullPolicy: IfNotPresent
+        name: tlsproxy
+        ports:
+        - containerPort: 3000
+          name: http
+          protocol: TCP
+        volumeMounts:
+        - mountPath: /etc/certs
+          name: istio-certs
+      volumes:
+      - name: istio-certs
+        secret:
+          defaultMode: 420
+          items:
+          - key: cert-chain.pem
+            path: cert-chain.pem
+          - key: client-key.pem
+            path: client-key.pem
+          - key: client-cert.pem
+            path: client-cert.pem
+          secretName: istio-certs
